@@ -1,0 +1,10 @@
+{
+  "name": "blog-manager-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Manage and cross-post to multiple WordPress sites from one place.",
+  "engines": {
+    "node": ">=18"
+  }
+}
