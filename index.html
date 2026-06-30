@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blog Manager</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a2029; --panel2:#232b36; --line:#2e3744;
+    --text:#e6edf3; --muted:#8b97a7; --accent:#4f8cff; --accent2:#3b6fd6;
+    --green:#2ea043; --red:#e5534b; --amber:#d29922; --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+  header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);
+    background:var(--panel);position:sticky;top:0;z-index:10}
+  header h1{font-size:17px;margin:0;font-weight:650}
+  header .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#7b5cff);
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff}
+  nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+  nav button{background:transparent;border:1px solid transparent;color:var(--muted);padding:8px 14px;
+    border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:550}
+  nav button:hover{color:var(--text);background:var(--panel2)}
+  nav button.active{color:#fff;background:var(--accent)}
+  main{max-width:1100px;margin:0 auto;padding:22px}
+  .view{display:none}.view.active{display:block}
+  h2{font-size:18px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 18px;font-size:13px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}
+  label{display:block;font-size:12.5px;color:var(--muted);margin:12px 0 5px;font-weight:600;letter-spacing:.02em}
+  input,textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    padding:10px 12px;border-radius:8px;font-size:14px;font-family:inherit}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+  textarea{min-height:240px;resize:vertical;line-height:1.55}
+  .row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:180px}
+  button.btn{background:var(--accent);color:#fff;border:none;padding:10px 18px;border-radius:8px;
+    cursor:pointer;font-weight:600;font-size:14px}
+  button.btn:hover{background:var(--accent2)}
+  button.btn:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+  button.ghost:hover{border-color:var(--accent)}
+  button.danger{background:transparent;border:1px solid var(--red);color:var(--red);padding:6px 12px;
+    border-radius:7px;cursor:pointer;font-size:12.5px}
+  button.danger:hover{background:rgba(229,83,75,.12)}
+  button.mini{font-size:12.5px;padding:6px 12px;border-radius:7px}
+  .site-item{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--line);
+    border-radius:9px;margin-bottom:10px;background:var(--panel2)}
+  .site-item .dot{width:9px;height:9px;border-radius:50%;background:var(--green);flex:none}
+  .site-item .meta{flex:1;min-width:0}
+  .site-item .meta b{display:block}.site-item .meta span{color:var(--muted);font-size:12.5px;word-break:break-all}
+  .checks{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .checks label{display:flex;align-items:center;gap:9px;color:var(--text);margin:0;font-weight:500;
+    cursor:pointer;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+  .checks input{width:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;color:var(--muted);font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line);font-size:12px;
+    text-transform:uppercase;letter-spacing:.04em}
+  td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:hover td{background:var(--panel2)}
+  .pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600}
+  .pill.publish{background:rgba(46,160,67,.16);color:#56d364}
+  .pill.draft{background:rgba(210,153,34,.16);color:#e3b341}
+  .pill.pending{background:rgba(79,140,255,.16);color:#79b8ff}
+  .pill.future{background:rgba(123,92,255,.16);color:#b392f0}
+  .muted{color:var(--muted)}
+  .link{color:var(--accent);cursor:pointer;text-decoration:none}
+  .link:hover{text-decoration:underline}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--panel);
+    border:1px solid var(--line);padding:13px 20px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);
+    z-index:100;max-width:90%;display:none}
+  .toast.show{display:block}
+  .toast.ok{border-color:var(--green)}.toast.err{border-color:var(--red)}
+  .empty{text-align:center;color:var(--muted);padding:40px 20px}
+  .spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.3);
+    border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hint{font-size:12px;color:var(--muted);margin-top:5px}
+  .result-line{padding:9px 12px;border-radius:8px;margin-bottom:7px;font-size:13px;border:1px solid var(--line)}
+  .result-line.ok{border-color:rgba(46,160,67,.5);background:rgba(46,160,67,.08)}
+  .result-line.err{border-color:rgba(229,83,75,.5);background:rgba(229,83,75,.08)}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .toolbar select{width:auto;min-width:180px}
+  /* login overlay */
+  #login{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;align-items:center;justify-content:center}
+  #login .box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:30px;width:340px;max-width:90%}
+  #login .logo{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7b5cff);
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:20px;margin:0 auto 14px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div id="login">
+  <div class="box">
+    <div class="logo">B</div>
+    <h2 style="text-align:center;margin:0 0 4px">Blog Manager</h2>
+    <p class="sub" style="text-align:center">Enter your access password to continue.</p>
+    <input id="accessInput" type="password" placeholder="Access password" onkeydown="if(event.key==='Enter')doLogin()">
+    <div id="loginMsg" style="margin-top:8px"></div>
+    <button class="btn" style="width:100%;margin-top:14px" onclick="doLogin()">Enter</button>
+    <p class="hint" style="text-align:center;margin-top:14px">This is the password you set as <b>ACCESS_PASSWORD</b> when deploying. If you didn't set one, type anything.</p>
+  </div>
+</div>
+
+<header>
+  <div class="logo">B</div>
+  <h1>Blog Manager</h1>
+  <nav>
+    <button data-view="dashboard" class="active">Dashboard</button>
+    <button data-view="compose">New Post</button>
+    <button data-view="edit">Edit Posts</button>
+    <button data-view="sites">Sites</button>
+    <button data-view="logout-btn" onclick="logout()" style="color:var(--muted)">Lock</button>
+  </nav>
+</header>
+<main>
+
+  <!-- DASHBOARD -->
+  <section class="view active" id="dashboard">
+    <h2>Dashboard</h2>
+    <p class="sub">Recent posts across all your connected WordPress sites.</p>
+    <div class="toolbar">
+      <button class="btn mini" onclick="loadDashboard()">Refresh</button>
+      <span id="dashStatus" class="muted"></span>
+    </div>
+    <div class="card" id="dashCard"><div class="empty">Loading…</div></div>
+  </section>
+
+  <!-- COMPOSE -->
+  <section class="view" id="compose">
+    <h2>New Post</h2>
+    <p class="sub">Write once, publish to one or many sites at the same time.</p>
+    <div class="card">
+      <label>Title</label>
+      <input id="cTitle" placeholder="Your article headline">
+      <label>Content</label>
+      <textarea id="cContent" placeholder="Write your article here. HTML is supported (e.g. &lt;h2&gt;, &lt;p&gt;, &lt;strong&gt;, &lt;a&gt;)."></textarea>
+      <div class="row">
+        <div>
+          <label>Status</label>
+          <select id="cStatus">
+            <option value="publish">Publish now</option>
+            <option value="draft" selected>Save as draft</option>
+            <option value="pending">Pending review</option>
+          </select>
+        </div>
+        <div>
+          <label>Categories <span class="muted">(comma-separated, optional)</span></label>
+          <input id="cCats" placeholder="News, Tutorials">
+        </div>
+        <div>
+          <label>Tags <span class="muted">(comma-separated, optional)</span></label>
+          <input id="cTags" placeholder="seo, wordpress">
+        </div>
+      </div>
+      <label>Publish to these sites</label>
+      <div class="checks" id="cSites"></div>
+      <div style="margin-top:18px">
+        <button class="btn" id="cSubmit" onclick="submitPost()">Publish</button>
+      </div>
+      <div id="cResults" style="margin-top:16px"></div>
+    </div>
+  </section>
+
+  <!-- EDIT -->
+  <section class="view" id="edit">
+    <h2>Edit Posts</h2>
+    <p class="sub">Open an existing article, update it, and save the changes back to its site.</p>
+    <div class="toolbar">
+      <select id="eSite" onchange="loadSitePosts()"></select>
+      <input id="eSearch" placeholder="Search posts…" style="max-width:240px" oninput="filterPosts()">
+      <button class="btn mini" onclick="loadSitePosts()">Reload</button>
+    </div>
+    <div class="card" id="editList"><div class="empty">Choose a site above.</div></div>
+
+    <div class="card" id="editForm" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <h2 style="margin:0;font-size:16px">Editing post</h2>
+        <span id="ePostMeta" class="muted"></span>
+        <button class="ghost mini" style="margin-left:auto" onclick="closeEdit()">Close</button>
+      </div>
+      <label>Title</label>
+      <input id="eTitle">
+      <label>Content</label>
+      <textarea id="eContent"></textarea>
+      <div class="row">
+        <div>
+          <label>Status</label>
+          <select id="eStatus">
+            <option value="publish">Published</option>
+            <option value="draft">Draft</option>
+            <option value="pending">Pending</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="btn" id="eSave" onclick="saveEdit()">Save changes</button>
+        <a id="eView" class="link" target="_blank" style="align-self:center">View on site ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SITES -->
+  <section class="view" id="sites">
+    <h2>Connected Sites</h2>
+    <p class="sub">Sites are stored privately in this browser. Connect each one with a WordPress Application Password.</p>
+    <div class="card"><div id="siteList"></div></div>
+    <div class="card">
+      <h2 style="font-size:15px">Add a site</h2>
+      <div class="row">
+        <div><label>Site name <span class="muted">(label for you)</span></label><input id="sName" placeholder="My Tech Blog"></div>
+        <div><label>Site URL</label><input id="sUrl" placeholder="https://example.com"></div>
+      </div>
+      <div class="row">
+        <div><label>WordPress username</label><input id="sUser" placeholder="admin"></div>
+        <div><label>Application Password</label><input id="sPass" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"></div>
+      </div>
+      <p class="hint">Create one at <b>WP Admin → Users → Your Profile → Application Passwords</b>. Paste it exactly (spaces are fine). This is NOT your login password.</p>
+      <div style="margin-top:14px;display:flex;gap:10px">
+        <button class="ghost mini" onclick="testSite()">Test connection</button>
+        <button class="btn" onclick="addSite()">Add site</button>
+      </div>
+      <div id="sResult" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+let SITES = [];
+let EDIT_POSTS = [];
+let CURRENT_EDIT = null;
+let ACCESS = sessionStorage.getItem('bm_access') || '';
+
+const $ = s => document.querySelector(s);
+const esc = s => (s||"").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function toast(msg, ok=true){
+  const t=$("#toast"); t.textContent=msg; t.className="toast show "+(ok?"ok":"err");
+  setTimeout(()=>t.className="toast",3200);
+}
+
+// ---- login gate ----
+function doLogin(){
+  ACCESS = $("#accessInput").value;
+  sessionStorage.setItem('bm_access', ACCESS);
+  $("#login").style.display='none';
+  start();
+}
+function logout(){ sessionStorage.removeItem('bm_access'); location.reload(); }
+
+// ---- site storage (localStorage) ----
+function loadStored(){
+  try{ SITES = JSON.parse(localStorage.getItem('bm_sites')||'[]'); }catch{ SITES=[]; }
+}
+function persist(){ localStorage.setItem('bm_sites', JSON.stringify(SITES)); }
+
+// ---- proxy call ----
+async function api({site, method='GET', path='wp/v2/posts', query, json}){
+  const r = await fetch('/api/wp', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({access:ACCESS, site, method, path, query, json})
+  });
+  const data = await r.json();
+  if(data && data.error==='WRONG_ACCESS_PASSWORD'){
+    sessionStorage.removeItem('bm_access');
+    toast('Wrong access password — please re-enter', false);
+    $("#login").style.display='flex';
+  }
+  return data;
+}
+
+// ---- navigation ----
+document.querySelectorAll('nav button[data-view]').forEach(b=>{
+  if(b.dataset.view==='logout-btn') return;
+  b.onclick=()=>{
+    document.querySelectorAll('nav button[data-view]').forEach(x=>{ if(x.dataset.view!=='logout-btn') x.classList.remove('active'); });
+    b.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    $('#'+b.dataset.view).classList.add('active');
+    if(b.dataset.view==='dashboard') loadDashboard();
+    if(b.dataset.view==='compose') renderComposeSites();
+    if(b.dataset.view==='edit') renderEditSiteOptions();
+  };
+});
+
+// ---- sites UI ----
+function renderSiteList(){
+  const el=$("#siteList");
+  if(!SITES.length){ el.innerHTML='<div class="empty">No sites connected yet. Add one below.</div>'; return; }
+  el.innerHTML = SITES.map(s=>`
+    <div class="site-item"><span class="dot"></span>
+      <div class="meta"><b>${esc(s.name)}</b><span>${esc(s.url)} · ${esc(s.username)}</span></div>
+      <button class="danger" onclick="delSite('${s.id}')">Remove</button>
+    </div>`).join('');
+}
+
+function siteFromInputs(){
+  return { url:$("#sUrl").value.trim(), username:$("#sUser").value.trim(), app_password:$("#sPass").value.trim() };
+}
+
+async function testSite(){
+  const s=siteFromInputs();
+  if(!s.url||!s.username||!s.app_password){ toast("Fill in URL, username and password",false); return; }
+  $("#sResult").innerHTML='<span class="spinner"></span> Testing…';
+  const r=await api({site:s, method:'GET', path:'wp/v2/users/me', query:{context:'edit'}});
+  if(r.ok){ $("#sResult").innerHTML=`<div class="result-line ok">Connected as <b>${esc(r.data.name||r.data.slug)}</b>. Ready to add.</div>`; }
+  else{ $("#sResult").innerHTML=`<div class="result-line err">Connection failed${r.status?(' ('+r.status+')'):''}: ${esc(fmtErr(r.error))}</div>`; }
+}
+
+async function addSite(){
+  const s=siteFromInputs();
+  if(!s.url||!s.username||!s.app_password){ toast("Fill in URL, username and password",false); return; }
+  SITES.push({ id:'s'+Date.now(), name:($("#sName").value.trim()||s.url), url:s.url, username:s.username, app_password:s.app_password });
+  persist(); renderSiteList(); renderComposeSites(); renderEditSiteOptions();
+  $("#sName").value=$("#sUrl").value=$("#sUser").value=$("#sPass").value=""; $("#sResult").innerHTML="";
+  toast("Site added");
+}
+
+function delSite(id){
+  if(!confirm("Remove this site from this browser?")) return;
+  SITES=SITES.filter(s=>s.id!==id); persist();
+  renderSiteList(); renderComposeSites(); renderEditSiteOptions(); toast("Site removed");
+}
+
+function fmtErr(e){ return typeof e==='string'?e:((e&&e.message)||JSON.stringify(e)); }
+
+// ---- dashboard ----
+async function loadDashboard(){
+  const card=$("#dashCard");
+  if(!SITES.length){ card.innerHTML='<div class="empty">Connect a site first (Sites tab).</div>'; $("#dashStatus").textContent=""; return; }
+  card.innerHTML='<div class="empty"><span class="spinner"></span> Fetching posts…</div>';
+  let rows=[];
+  for(const s of SITES){
+    const r=await api({site:s, method:'GET', path:'wp/v2/posts',
+      query:{per_page:10, status:'publish,draft,pending,future', orderby:'modified', context:'edit', _fields:'id,title,status,link,modified,date'}});
+    if(r.ok && Array.isArray(r.data)) r.data.forEach(p=>rows.push({site:s,p}));
+  }
+  rows.sort((a,b)=> new Date(b.p.modified)-new Date(a.p.modified));
+  $("#dashStatus").textContent = rows.length+" posts across "+SITES.length+" site(s)";
+  if(!rows.length){ card.innerHTML='<div class="empty">No posts found.</div>'; return; }
+  card.innerHTML=`<table><thead><tr><th>Title</th><th>Site</th><th>Status</th><th>Modified</th><th></th></tr></thead><tbody>${
+    rows.map(({site,p})=>`<tr>
+      <td><b>${esc(decodeTitle(p.title))||'(no title)'}</b></td>
+      <td>${esc(site.name)}</td>
+      <td><span class="pill ${p.status}">${p.status}</span></td>
+      <td class="muted">${fmtDate(p.modified)}</td>
+      <td><span class="link" onclick="openEditFromDash('${site.id}',${p.id})">Edit</span> · <a class="link" href="${esc(p.link)}" target="_blank">View ↗</a></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function decodeTitle(t){ if(!t) return ''; if(typeof t==='string') return t; return (t.rendered||t.raw||''); }
+function fmtDate(d){ if(!d) return ''; const dt=new Date(d); return dt.toLocaleDateString()+' '+dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+
+// ---- compose / cross-post ----
+function renderComposeSites(){
+  const el=$("#cSites");
+  if(!SITES.length){ el.innerHTML='<div class="muted">No sites connected. Add one in the Sites tab.</div>'; return; }
+  el.innerHTML=SITES.map(s=>`<label><input type="checkbox" class="cSite" value="${s.id}"> ${esc(s.name)} <span class="muted">— ${esc(s.url)}</span></label>`).join('');
+}
+
+async function resolveTerms(site, taxonomy, names){
+  const ids=[];
+  for(const name of names){
+    const trimmed=name.trim(); if(!trimmed) continue;
+    let r=await api({site, method:'GET', path:'wp/v2/'+taxonomy, query:{search:trimmed, per_page:5, context:'edit', _fields:'id,name'}});
+    let found=null;
+    if(r.ok && Array.isArray(r.data)) found=r.data.find(t=>(t.name||'').toLowerCase()===trimmed.toLowerCase());
+    if(found){ ids.push(found.id); continue; }
+    let c=await api({site, method:'POST', path:'wp/v2/'+taxonomy, json:{name:trimmed}});
+    if(c.ok && c.data && c.data.id) ids.push(c.data.id);
+  }
+  return ids;
+}
+
+async function submitPost(){
+  const title=$("#cTitle").value.trim();
+  const content=$("#cContent").value;
+  const status=$("#cStatus").value;
+  const catNames=$("#cCats").value.split(',').filter(x=>x.trim());
+  const tagNames=$("#cTags").value.split(',').filter(x=>x.trim());
+  const ids=[...document.querySelectorAll('.cSite:checked')].map(c=>c.value);
+  if(!title){ toast("Add a title",false); return; }
+  if(!ids.length){ toast("Select at least one site",false); return; }
+
+  const btn=$("#cSubmit"); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Publishing…';
+  const res=$("#cResults"); res.innerHTML='';
+
+  for(const id of ids){
+    const site=SITES.find(s=>s.id===id);
+    const payload={title, content, status};
+    try{
+      if(catNames.length){ const cids=await resolveTerms(site,'categories',catNames); if(cids.length) payload.categories=cids; }
+      if(tagNames.length){ const tids=await resolveTerms(site,'tags',tagNames); if(tids.length) payload.tags=tids; }
+    }catch(e){}
+    const r=await api({site, method:'POST', path:'wp/v2/posts', json:payload});
+    const line=document.createElement('div');
+    if(r.ok && r.data){
+      line.className='result-line ok';
+      line.innerHTML=`<b>${esc(site.name)}</b>: ${status==='publish'?'published':'saved'} — <a class="link" href="${esc(r.data.link)}" target="_blank">${esc(r.data.link)}</a>`;
+    }else{
+      line.className='result-line err';
+      line.innerHTML=`<b>${esc(site.name)}</b>: failed${r.status?(' ('+r.status+')'):''} — ${esc(fmtErr(r.error))}`;
+    }
+    res.appendChild(line);
+  }
+  btn.disabled=false; btn.textContent='Publish'; toast("Done");
+}
+
+// ---- edit ----
+function renderEditSiteOptions(){
+  const sel=$("#eSite"); const prev=sel.value;
+  sel.innerHTML='<option value="">— Select a site —</option>'+SITES.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  if(prev) sel.value=prev;
+}
+
+async function loadSitePosts(){
+  const id=$("#eSite").value; const list=$("#editList");
+  if(!id){ list.innerHTML='<div class="empty">Choose a site above.</div>'; return; }
+  const site=SITES.find(s=>s.id===id);
+  list.innerHTML='<div class="empty"><span class="spinner"></span> Loading posts…</div>';
+  const r=await api({site, method:'GET', path:'wp/v2/posts',
+    query:{per_page:30, status:'publish,draft,pending,future', orderby:'modified', context:'edit', _fields:'id,title,status,link,modified'}});
+  if(!(r.ok && Array.isArray(r.data))){ list.innerHTML='<div class="empty">Could not load posts.</div>'; return; }
+  EDIT_POSTS=r.data.map(p=>({...p, siteId:id}));
+  renderPostList(EDIT_POSTS);
+}
+
+function renderPostList(posts){
+  const list=$("#editList");
+  if(!posts.length){ list.innerHTML='<div class="empty">No posts.</div>'; return; }
+  list.innerHTML=`<table><thead><tr><th>Title</th><th>Status</th><th>Modified</th><th></th></tr></thead><tbody>${
+    posts.map(p=>`<tr>
+      <td><b>${esc(decodeTitle(p.title))||'(no title)'}</b></td>
+      <td><span class="pill ${p.status}">${p.status}</span></td>
+      <td class="muted">${fmtDate(p.modified)}</td>
+      <td><span class="link" onclick="openEdit('${p.siteId}',${p.id})">Edit</span></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function filterPosts(){
+  const q=$("#eSearch").value.toLowerCase();
+  renderPostList(EDIT_POSTS.filter(p=>decodeTitle(p.title).toLowerCase().includes(q)));
+}
+
+async function openEditFromDash(siteId,postId){
+  document.querySelector('nav button[data-view="edit"]').click();
+  $("#eSite").value=siteId; await openEdit(siteId,postId);
+}
+
+async function openEdit(siteId,postId){
+  const site=SITES.find(s=>s.id===siteId);
+  $("#editForm").style.display='block'; $("#eTitle").value=''; $("#eContent").value='Loading…';
+  const r=await api({site, method:'GET', path:'wp/v2/posts/'+postId, query:{context:'edit', _fields:'id,title,content,status,link'}});
+  if(!r.ok || !r.data){ toast("Could not open post",false); return; }
+  const p=r.data; CURRENT_EDIT={site, postId};
+  $("#eTitle").value = (p.title&&(p.title.raw!==undefined?p.title.raw:p.title.rendered)) || '';
+  $("#eContent").value = (p.content&&(p.content.raw!==undefined?p.content.raw:p.content.rendered)) || '';
+  $("#eStatus").value = p.status||'draft';
+  $("#ePostMeta").textContent='#'+p.id; $("#eView").href=p.link||'#';
+  $("#editForm").scrollIntoView({behavior:'smooth'});
+}
+
+async function saveEdit(){
+  if(!CURRENT_EDIT) return;
+  const btn=$("#eSave"); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Saving…';
+  const payload={title:$("#eTitle").value, content:$("#eContent").value, status:$("#eStatus").value};
+  const r=await api({site:CURRENT_EDIT.site, method:'POST', path:'wp/v2/posts/'+CURRENT_EDIT.postId, json:payload});
+  btn.disabled=false; btn.textContent='Save changes';
+  if(r.ok){ toast("Saved"); loadSitePosts(); } else { toast("Save failed: "+fmtErr(r.error),false); }
+}
+function closeEdit(){ $("#editForm").style.display='none'; CURRENT_EDIT=null; }
+
+// ---- init ----
+function start(){
+  loadStored(); renderSiteList(); renderComposeSites(); renderEditSiteOptions(); loadDashboard();
+}
+if(ACCESS){ $("#login").style.display='none'; start(); }
+else { $("#accessInput").focus(); }
+</script>
+</body>
+</html>
