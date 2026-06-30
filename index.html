@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blog Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js" referrerpolicy="origin"></script>
 <style>
   :root{
     --bg:#0f1419; --panel:#1a2029; --panel2:#232b36; --line:#2e3744;
@@ -281,10 +282,42 @@ document.querySelectorAll('nav button[data-view]').forEach(b=>{
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     $('#'+b.dataset.view).classList.add('active');
     if(b.dataset.view==='dashboard') loadDashboard();
-    if(b.dataset.view==='compose') renderComposeSites();
+    if(b.dataset.view==='compose'){ renderComposeSites(); ensureEditor('cContent'); }
     if(b.dataset.view==='edit') renderEditSiteOptions();
   };
 });
+
+// ---- rich text editor (TinyMCE, WordPress Classic style) ----
+const EDITOR_OPTS = {
+  license_key:'gpl',
+  promotion:false,
+  branding:false,
+  menubar:false,
+  skin:'oxide-dark',
+  content_css:'dark',
+  height:380,
+  plugins:'lists link image charmap code autolink wordcount',
+  toolbar:'undo redo | blocks | bold italic underline strikethrough | bullist numlist blockquote | alignleft aligncenter alignright | link unlink image | forecolor removeformat | charmap code',
+  block_formats:'Paragraph=p;Heading 1=h1;Heading 2=h2;Heading 3=h3;Heading 4=h4;Preformatted=pre',
+  content_style:'body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.6}',
+  paste_data_images:false,
+  convert_urls:false
+};
+function ensureEditor(id, cb){
+  if(!window.tinymce){ cb && cb(); return; }
+  if(tinymce.get(id)){ cb && cb(); return; }
+  tinymce.init(Object.assign({selector:'#'+id}, EDITOR_OPTS, {
+    setup:(ed)=>{ ed.on('init', ()=>{ cb && cb(); }); }
+  }));
+}
+function getEditorContent(id){
+  if(window.tinymce && tinymce.get(id)) return tinymce.get(id).getContent();
+  return $('#'+id).value;
+}
+function setEditorContent(id, html){
+  if(window.tinymce && tinymce.get(id)) tinymce.get(id).setContent(html||'');
+  else $('#'+id).value = html||'';
+}
 
 // ---- sites UI ----
 function renderSiteList(){
@@ -377,7 +410,7 @@ async function resolveTerms(site, taxonomy, names){
 
 async function submitPost(){
   const title=$("#cTitle").value.trim();
-  const content=$("#cContent").value;
+  const content=getEditorContent('cContent');
   const status=$("#cStatus").value;
   const catNames=$("#cCats").value.split(',').filter(x=>x.trim());
   const tagNames=$("#cTags").value.split(',').filter(x=>x.trim());
@@ -452,12 +485,14 @@ async function openEditFromDash(siteId,postId){
 
 async function openEdit(siteId,postId){
   const site=SITES.find(s=>s.id===siteId);
-  $("#editForm").style.display='block'; $("#eTitle").value=''; $("#eContent").value='Loading…';
+  $("#editForm").style.display='block'; $("#eTitle").value='';
+  ensureEditor('eContent', ()=> setEditorContent('eContent','<p>Loading…</p>'));
   const r=await api({site, method:'GET', path:'wp/v2/posts/'+postId, query:{context:'edit', _fields:'id,title,content,status,link'}});
   if(!r.ok || !r.data){ toast("Could not open post",false); return; }
   const p=r.data; CURRENT_EDIT={site, postId};
   $("#eTitle").value = (p.title&&(p.title.raw!==undefined?p.title.raw:p.title.rendered)) || '';
-  $("#eContent").value = (p.content&&(p.content.raw!==undefined?p.content.raw:p.content.rendered)) || '';
+  const html = (p.content&&(p.content.raw!==undefined?p.content.raw:p.content.rendered)) || '';
+  ensureEditor('eContent', ()=> setEditorContent('eContent', html));
   $("#eStatus").value = p.status||'draft';
   $("#ePostMeta").textContent='#'+p.id; $("#eView").href=p.link||'#';
   $("#editForm").scrollIntoView({behavior:'smooth'});
@@ -466,7 +501,7 @@ async function openEdit(siteId,postId){
 async function saveEdit(){
   if(!CURRENT_EDIT) return;
   const btn=$("#eSave"); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Saving…';
-  const payload={title:$("#eTitle").value, content:$("#eContent").value, status:$("#eStatus").value};
+  const payload={title:$("#eTitle").value, content:getEditorContent('eContent'), status:$("#eStatus").value};
   const r=await api({site:CURRENT_EDIT.site, method:'POST', path:'wp/v2/posts/'+CURRENT_EDIT.postId, json:payload});
   btn.disabled=false; btn.textContent='Save changes';
   if(r.ok){ toast("Saved"); loadSitePosts(); } else { toast("Save failed: "+fmtErr(r.error),false); }
